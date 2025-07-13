@@ -13,17 +13,16 @@ import (
 )
 
 type ProductHandler struct {
-	service *service.ProductService
-	userService *service.UserService
+	service        *service.ProductService
+	userService    *service.UserService
+	authMiddleware *ecomiddleware.AuthMiddleware
 }
 
-func NewProductHandler(service *service.ProductService) *ProductHandler {
-	return &ProductHandler{service: service}
+func NewProductHandler(service *service.ProductService, userService *service.UserService, authMiddleware *ecomiddleware.AuthMiddleware) *ProductHandler {
+	return &ProductHandler{service: service, userService: userService, authMiddleware: authMiddleware}
 }
 
 func (h *ProductHandler) RegisterRoutes(r chi.Router) {
-
-	authMiddleware := ecomiddleware.NewAuthMiddleware(h.userService)
 
 	r.Route("/", func(r chi.Router) {
 		// Public routes
@@ -32,7 +31,7 @@ func (h *ProductHandler) RegisterRoutes(r chi.Router) {
 
 		// Private routes
 		r.Group(func(r chi.Router) {
-			r.Use(authMiddleware.Authenticate)
+			r.Use(h.authMiddleware.Authenticate)
 			r.Post("/", h.createProduct)
 			r.Put("/{id}", h.updateProduct)
 			r.Delete("/{id}", h.deleteProduct)

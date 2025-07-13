@@ -96,7 +96,7 @@ func (r *CartRepository) GetCartByID(ctx context.Context, cartID int64) (*models
 // DeleteCart deletes a cart and all its items
 func (r *CartRepository) DeleteCart(ctx context.Context, cartID int64) error {
 	query := `DELETE FROM carts WHERE id = ?`
-	
+
 	result, err := r.db.ExecContext(ctx, query, cartID)
 	if err != nil {
 		return err
@@ -156,8 +156,9 @@ func (r *CartRepository) AddCartItem(ctx context.Context, cartID, productID int6
 // GetCartItemByProduct retrieves a cart item by cart ID and product ID
 func (r *CartRepository) GetCartItemByProduct(ctx context.Context, cartID, productID int64) (*models.CartItem, error) {
 	query := `
-		SELECT id, cart_id, product_id, quantity, created_at, updated_at
+		SELECT cart_items.id, cart_id, product_id, quantity, cart_items.created_at, cart_items.updated_at, products.name
 		FROM cart_items
+		JOIN products ON cart_items.product_id = products.id
 		WHERE cart_id = ? AND product_id = ?
 	`
 
@@ -169,6 +170,7 @@ func (r *CartRepository) GetCartItemByProduct(ctx context.Context, cartID, produ
 		&cartItem.Quantity,
 		&cartItem.CreatedAt,
 		&cartItem.UpdatedAt,
+		&cartItem.ProductName,
 	)
 
 	if err != nil {
@@ -181,8 +183,9 @@ func (r *CartRepository) GetCartItemByProduct(ctx context.Context, cartID, produ
 // GetCartItemByID retrieves a cart item by its ID
 func (r *CartRepository) GetCartItemByID(ctx context.Context, itemID int64) (*models.CartItem, error) {
 	query := `
-		SELECT id, cart_id, product_id, quantity, created_at, updated_at
+		SELECT cart_items.id, cart_id, product_id, quantity, cart_items.created_at, cart_items.updated_at, products.name
 		FROM cart_items
+		JOIN products ON cart_items.product_id = products.id
 		WHERE id = ?
 	`
 
@@ -194,6 +197,7 @@ func (r *CartRepository) GetCartItemByID(ctx context.Context, itemID int64) (*mo
 		&cartItem.Quantity,
 		&cartItem.CreatedAt,
 		&cartItem.UpdatedAt,
+		&cartItem.ProductName,
 	)
 
 	if err != nil {
@@ -210,14 +214,13 @@ func (r *CartRepository) GetCartItemByID(ctx context.Context, itemID int64) (*mo
 func (r *CartRepository) UpdateCartItemQuantity(ctx context.Context, itemID int64, quantity int) (*models.CartItem, error) {
 	query := `
 		UPDATE cart_items
-		SET quantity = ?, updated_at = ?
+		SET quantity = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
 		RETURNING id, cart_id, product_id, quantity, created_at, updated_at
 	`
 
-	now := time.Now()
 	cartItem := &models.CartItem{}
-	err := r.db.QueryRowContext(ctx, query, quantity, now, itemID).Scan(
+	err := r.db.QueryRowContext(ctx, query, quantity, itemID).Scan(
 		&cartItem.ID,
 		&cartItem.CartID,
 		&cartItem.ProductID,
@@ -233,14 +236,13 @@ func (r *CartRepository) UpdateCartItemQuantity(ctx context.Context, itemID int6
 		return nil, err
 	}
 
-	cartItem.UpdatedAt = &now
 	return cartItem, nil
 }
 
 // RemoveCartItem removes a specific item from the cart
 func (r *CartRepository) RemoveCartItem(ctx context.Context, itemID int64) error {
 	query := `DELETE FROM cart_items WHERE id = ?`
-	
+
 	result, err := r.db.ExecContext(ctx, query, itemID)
 	if err != nil {
 		return err
@@ -261,8 +263,9 @@ func (r *CartRepository) RemoveCartItem(ctx context.Context, itemID int64) error
 // GetCartItems retrieves all items in a cart with product details
 func (r *CartRepository) GetCartItems(ctx context.Context, cartID int64) ([]*models.CartItem, error) {
 	query := `
-		SELECT ci.id, ci.cart_id, ci.product_id, ci.quantity, ci.created_at, ci.updated_at
+		SELECT ci.id, ci.cart_id, ci.product_id, ci.quantity, ci.created_at, ci.updated_at, products.name, products.price, products.image_url
 		FROM cart_items ci
+		JOIN products ON ci.product_id = products.id
 		WHERE ci.cart_id = ?
 		ORDER BY ci.created_at ASC
 	`
@@ -283,6 +286,9 @@ func (r *CartRepository) GetCartItems(ctx context.Context, cartID int64) ([]*mod
 			&item.Quantity,
 			&item.CreatedAt,
 			&item.UpdatedAt,
+			&item.ProductName,
+			&item.Price,
+			&item.ImageURL,
 		)
 		if err != nil {
 			return nil, err
@@ -300,7 +306,7 @@ func (r *CartRepository) GetCartItems(ctx context.Context, cartID int64) ([]*mod
 // ClearCart removes all items from a cart
 func (r *CartRepository) ClearCart(ctx context.Context, cartID int64) error {
 	query := `DELETE FROM cart_items WHERE cart_id = ?`
-	
+
 	_, err := r.db.ExecContext(ctx, query, cartID)
 	return err
 }
@@ -337,4 +343,4 @@ func (r *CartRepository) GetCartWithItemsByUser(ctx context.Context, userID int6
 	}
 
 	return cart, cartItems, nil
-} 
+}

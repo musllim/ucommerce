@@ -65,9 +65,9 @@ func main() {
 	orderService := service.NewOrderService(orderRepo, cartRepo, productRepo)
 
 	// Initialize handlers
-	productHandler := handlers.NewProductHandler(productService)
 	userHandler := handlers.NewUserHandler(userService)
 	authMiddleware := ecomiddleware.NewAuthMiddleware(userService)
+	productHandler := handlers.NewProductHandler(productService, userService, authMiddleware)
 	cartHandler := handlers.NewCartHandler(cartService, authMiddleware)
 	orderHandler := handlers.NewOrderHandler(orderService, authMiddleware)
 
