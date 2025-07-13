@@ -23,8 +23,10 @@ func NewUserHandler(service *service.UserService) *UserHandler {
 
 func (h *UserHandler) RegisterRoutes(r chi.Router) {
 	r.Post("/", h.createUser)
+	r.Get("/", h.getAllUsers)
 	r.Get("/{id}", h.getUser)
 	r.Post("/login", h.login)
+	r.Post("/oauth-login", h.oauthLogin)
 }
 
 // @Summary      Create user
@@ -123,6 +125,110 @@ func (h *UserHandler) login(w http.ResponseWriter, r *http.Request) {
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+// @Summary      OAuth login
+// @Description  Authenticate user via OAuth and return JWT token
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        oauth_data  body      OAuthLoginRequest  true  "OAuth user data"
+// @Success      200         {object}  OAuthLoginResponse
+// @Failure      400         {object}  string
+// @Router       /users/oauth-login [post]
+func (h *UserHandler) oauthLogin(w http.ResponseWriter, r *http.Request) {
+	var req OAuthLoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.Email == "" {
+		http.Error(w, "email is required", http.StatusBadRequest)
+		return
+	}
+
+	token, err := h.service.OAuthLogin(r.Context(), req.Email, req.Name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+
+
+	response := OAuthLoginResponse{
+		Token: token,
+		User:  OAuthUser(req),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+type OAuthLoginRequest struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
+}
+
+type OAuthUser struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
+}
+
+type OAuthLoginResponse struct {
+	Token string    `json:"token"`
+	User  OAuthUser `json:"user"`
+}
+
+// @Summary      Get all users
+// @Description  Get all users with optional pagination
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        limit   query     int  false  "Number of users to return (default: 10)"
+// @Param        offset  query     int  false  "Number of users to skip (default: 0)"
+// @Success      200     {object}  UsersResponse
+// @Failure      500     {object}  string
+// @Security     BearerAuth
+// @Router       /users [get]
+func (h *UserHandler) getAllUsers(w http.ResponseWriter, r *http.Request) {
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit := 10
+	if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+		limit = l
+	}
+
+	offset := 0
+	if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+		offset = o
+	}
+
+	users, err := h.service.GetAllUsers(r.Context(), limit, offset)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	total, err := h.service.CountUsers(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := UsersResponse{
+		Total: total,
+		Data:  users,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+type UsersResponse struct {
+	Total int64        `json:"total"`
+	Data  []*models.User `json:"data"`
 } 
 
 

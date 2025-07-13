@@ -171,3 +171,15 @@ func (r *ProductRepository) Delete(ctx context.Context, id int64) error {
 
 	return nil
 }
+
+func (r *ProductRepository) Count(ctx context.Context) (*int, error) {
+	query := `SELECT COUNT(*) AS total FROM products`
+	
+	row := r.db.QueryRowContext(ctx, query)
+	var total int
+	if err := row.Scan(&total); err != nil {
+		return nil, err
+	}
+	return &total, nil
+}
+

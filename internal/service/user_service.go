@@ -110,3 +110,46 @@ func (s *UserService) ValidateToken(ctx context.Context, tokenString string) (*m
 
 	return user, nil
 }
+
+func (s *UserService) OAuthLogin(ctx context.Context, email, name string) (string, error) {
+	// Try to find existing user by email
+	user, err := s.repo.GetByEmail(ctx, email)
+	if err != nil {
+		// User doesn't exist, create new user
+		// For OAuth users, we'll set a placeholder password since DB requires it
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("oauth-user-"+email), bcrypt.DefaultCost)
+		if err != nil {
+			return "", err
+		}
+		
+		user = &models.User{
+			Name:     name,
+			Email:    email,
+			Password: string(hashedPassword),
+		}
+		
+		err = s.repo.Create(ctx, user)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	// Create JWT token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.ID,
+		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+	})
+	tokenString, err := token.SignedString(jwtSecret)
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
+}
+
+func (s *UserService) GetAllUsers(ctx context.Context, limit, offset int) ([]*models.User, error) {
+	return s.repo.GetAll(ctx, limit, offset)
+}
+
+func (s *UserService) CountUsers(ctx context.Context) (int64, error) {
+	return s.repo.Count(ctx)
+}

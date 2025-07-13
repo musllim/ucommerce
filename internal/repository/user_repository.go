@@ -95,4 +95,54 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.
 	}
 
 	return user, nil
+}
+
+func (r *UserRepository) GetAll(ctx context.Context, limit, offset int) ([]*models.User, error) {
+	query := `
+		SELECT id, name, email, password, created_at, updated_at
+		FROM users
+		ORDER BY created_at DESC
+		LIMIT ? OFFSET ?
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		user := &models.User{}
+		err := rows.Scan(
+			&user.ID,
+			&user.Name,
+			&user.Email,
+			&user.Password,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
+func (r *UserRepository) Count(ctx context.Context) (int64, error) {
+	query := `SELECT COUNT(*) FROM users`
+	
+	var count int64
+	err := r.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	
+	return count, nil
 } 

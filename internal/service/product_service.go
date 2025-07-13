@@ -35,6 +35,10 @@ func (s *ProductService) GetProduct(ctx context.Context, id int64) (*models.Prod
 	return s.repo.GetByID(ctx, id)
 }
 
+func (s *ProductService) CountProduct(ctx context.Context) (*int, error) {
+	return s.repo.Count(ctx)
+}
+
 func (s *ProductService) ListProducts(ctx context.Context, limit, offset int, category string) ([]*models.Product, error) {
 	if limit <= 0 {
 		limit = 10

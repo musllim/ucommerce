@@ -7,6 +7,36 @@ definitions:
       password:
         type: string
     type: object
+  handlers.OAuthLoginRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+  handlers.OAuthLoginResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/handlers.OAuthUser'
+    type: object
+  handlers.OAuthUser:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+  handlers.UsersResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+      total:
+        type: integer
+    type: object
   models.CartItem:
     properties:
       cart_id:
@@ -15,8 +45,14 @@ definitions:
         type: string
       id:
         type: integer
+      image_url:
+        type: string
+      price:
+        type: number
       product_id:
         type: integer
+      product_name:
+        type: string
       quantity:
         type: integer
       updated_at:
@@ -395,7 +431,6 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get a specific product by its ID
       parameters:
       - description: Product ID
         in: path
@@ -421,7 +456,6 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: Get product by ID
       tags:
       - products
     put:
@@ -461,6 +495,35 @@ paths:
       tags:
       - products
   /users:
+    get:
+      consumes:
+      - application/json
+      description: Get all users with optional pagination
+      parameters:
+      - description: 'Number of users to return (default: 10)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Number of users to skip (default: 0)'
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.UsersResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get all users
+      tags:
+      - users
     post:
       consumes:
       - application/json
@@ -551,6 +614,32 @@ paths:
           schema:
             type: string
       summary: User login
+      tags:
+      - users
+  /users/oauth-login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user via OAuth and return JWT token
+      parameters:
+      - description: OAuth user data
+        in: body
+        name: oauth_data
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.OAuthLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.OAuthLoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: OAuth login
       tags:
       - users
 securityDefinitions:

@@ -70,13 +70,25 @@ func (h *ProductHandler) listProducts(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	
+	total, err := h.service.CountProduct(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	type Response struct {
+		Total *int              `json:"total"`
+		Data  []*models.Product `json:"data"`
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(products)
+	resp := Response{
+		Total: total,
+		Data:  products,
+	}
+	json.NewEncoder(w).Encode(resp)
 }
-
-// @Summary      Get product by ID
-// @Description  Get a specific product by its ID
 // @Tags         products
 // @Accept       json
 // @Produce      json
