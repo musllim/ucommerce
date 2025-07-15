@@ -200,4 +200,42 @@ func (r *OrderRepository) UpdateStatus(ctx context.Context, orderID int64, statu
 	}
 
 	return nil
+}
+
+// GetAll retrieves all orders (admin use)
+func (r *OrderRepository) GetAll(ctx context.Context) ([]*models.Order, error) {
+	query := `
+		SELECT id, user_id, status, total, created_at, updated_at
+		FROM orders
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orders []*models.Order
+	for rows.Next() {
+		var order models.Order
+		err := rows.Scan(
+			&order.ID,
+			&order.UserID,
+			&order.Status,
+			&order.Total,
+			&order.CreatedAt,
+			&order.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		orders = append(orders, &order)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return orders, nil
 } 

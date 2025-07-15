@@ -32,6 +32,7 @@ func (s *UserService) Login(ctx context.Context, email, password string) (string
 	// Create JWT token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
+		"role":    user.Role,
 		"exp":     time.Now().Add(24 * time.Hour).Unix(),
 	})
 	tokenString, err := token.SignedString(jwtSecret)
@@ -55,6 +56,9 @@ func (s *UserService) CreateUser(ctx context.Context, user models.UserInput) err
 	if user.Password == "" {
 		return errors.New("user password is required")
 	}
+	if user.Role == "" {
+		user.Role = "user"
+	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -66,6 +70,7 @@ func (s *UserService) CreateUser(ctx context.Context, user models.UserInput) err
 		Name:     user.Name,
 		Email:    user.Email,
 		Password: user.Password,
+		Role:     user.Role,
 	})
 }
 
@@ -108,6 +113,7 @@ func (s *UserService) ValidateToken(ctx context.Context, tokenString string) (*m
 		return nil, errors.New("user not found")
 	}
 
+	// Optionally, you could check the role claim here for extra validation
 	return user, nil
 }
 
@@ -126,6 +132,7 @@ func (s *UserService) OAuthLogin(ctx context.Context, email, name string) (strin
 			Name:     name,
 			Email:    email,
 			Password: string(hashedPassword),
+			Role:     "user",
 		}
 		
 		err = s.repo.Create(ctx, user)
@@ -137,6 +144,7 @@ func (s *UserService) OAuthLogin(ctx context.Context, email, name string) (strin
 	// Create JWT token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
+		"role":    user.Role,
 		"exp":     time.Now().Add(24 * time.Hour).Unix(),
 	})
 	tokenString, err := token.SignedString(jwtSecret)

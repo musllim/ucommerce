@@ -26,6 +26,7 @@ func (h *OrderHandler) RegisterRoutes(r chi.Router) {
 	r.Use(h.authMiddleware.Authenticate)
 	r.Post("/", h.createOrder)
 	r.Get("/", h.getUserOrders)
+	r.Get("/admin", h.getAllOrdersAdmin)
 	r.Get("/{id}", h.getOrderDetails)
 }
 
@@ -86,6 +87,37 @@ func (h *OrderHandler) getUserOrders(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(orders)
 }
 
+// getAllOrdersAdmin godoc
+// @Summary      Get all orders (admin)
+// @Description  Retrieves all orders (admin only)
+// @Tags         orders
+// @Produce      json
+// @Success      200 {array} models.Order
+// @Security     BearerAuth
+// @Failure      401 {string} string "Unauthorized"
+// @Failure      403 {string} string "Forbidden"
+// @Router       /orders/admin [get]
+func (h *OrderHandler) getAllOrdersAdmin(w http.ResponseWriter, r *http.Request) {
+	user, ok := r.Context().Value("user").(*models.User)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if user.Role != "admin" {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	orders, err := h.service.GetAllOrders(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(orders)
+}
+
 // getOrderDetails godoc
 // @Summary      Get order details
 // @Description  Retrieves details for a specific order of the authenticated user
@@ -112,8 +144,9 @@ func (h *OrderHandler) getOrderDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID := user.ID
+	userRole := user.Role
 
-	order, items, err := h.service.GetOrderDetails(r.Context(), orderID, userID)
+	order, items, err := h.service.GetOrderDetails(r.Context(), orderID, userID, userRole)
 	if err != nil {
 		if err.Error() == "order not found" {
 			http.Error(w, "order not found", http.StatusNotFound)

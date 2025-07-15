@@ -111,13 +111,13 @@ func (s *OrderService) GetUserOrders(ctx context.Context, userID int64) ([]*mode
 	return s.orderRepo.GetByUserID(ctx, userID)
 }
 
-func (s *OrderService) GetOrderDetails(ctx context.Context, orderID, userID int64) (*models.Order, []*models.OrderItem, error) {
+func (s *OrderService) GetOrderDetails(ctx context.Context, orderID, userID int64, userRole string) (*models.Order, []*models.OrderItem, error) {
 	order, err := s.orderRepo.GetByID(ctx, orderID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if order.UserID != userID {
+	if userRole != "admin" && order.UserID != userID {
 		return nil, nil, errors.New("order not found")
 	}
 
@@ -127,4 +127,8 @@ func (s *OrderService) GetOrderDetails(ctx context.Context, orderID, userID int6
 	}
 
 	return order, items, nil
+}
+
+func (s *OrderService) GetAllOrders(ctx context.Context) ([]*models.Order, error) {
+	return s.orderRepo.GetAll(ctx)
 }

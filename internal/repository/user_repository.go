@@ -20,8 +20,8 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 
 func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 	query := `
-		INSERT INTO users (name, email, password, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?)
+		INSERT INTO users (name, email, password, role, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?)
 		RETURNING id
 	`
 
@@ -30,6 +30,7 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 		user.Name,
 		user.Email,
 		user.Password,
+		user.Role,
 		now,
 		now,
 	).Scan(&user.ID)
@@ -45,7 +46,7 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 
 func (r *UserRepository) GetByID(ctx context.Context, id int64) (*models.User, error) {
 	query := `
-		SELECT id, name, email, password, created_at, updated_at
+		SELECT id, name, email, password, role, created_at, updated_at
 		FROM users
 		WHERE id = ?
 	`
@@ -56,6 +57,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (*models.User, e
 		&user.Name,
 		&user.Email,
 		&user.Password,
+		&user.Role,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -72,7 +74,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id int64) (*models.User, e
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	query := `
-		SELECT id, name, email, password, created_at, updated_at
+		SELECT id, name, email, password, role, created_at, updated_at
 		FROM users
 		WHERE email = ?
 	`
@@ -83,6 +85,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.
 		&user.Name,
 		&user.Email,
 		&user.Password,
+		&user.Role,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -99,7 +102,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.
 
 func (r *UserRepository) GetAll(ctx context.Context, limit, offset int) ([]*models.User, error) {
 	query := `
-		SELECT id, name, email, password, created_at, updated_at
+		SELECT id, name, email, password, role, created_at, updated_at
 		FROM users
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?
@@ -119,6 +122,7 @@ func (r *UserRepository) GetAll(ctx context.Context, limit, offset int) ([]*mode
 			&user.Name,
 			&user.Email,
 			&user.Password,
+			&user.Role,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		)

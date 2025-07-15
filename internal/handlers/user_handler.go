@@ -46,6 +46,9 @@ func (h *UserHandler) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Always set role to 'user' regardless of input
+	input.Role = "user"
+
 	err := h.service.CreateUser(r.Context(), input)
 	if err != nil {
 		fmt.Println("Error creating user:", input)
