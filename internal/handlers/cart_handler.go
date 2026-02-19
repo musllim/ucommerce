@@ -3,7 +3,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -76,7 +75,6 @@ func (h *CartHandler) getCartItems(w http.ResponseWriter, r *http.Request) {
 // @Failure      401   {object}  string
 // @Router       /cart/items [post]
 func (h *CartHandler) addToCart(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("addToCart")
 	var req struct {
 		ProductID int64 `json:"product_id"`
 		Quantity  int   `json:"quantity"`

@@ -82,20 +82,11 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID int64) (*models.O
 		return nil, err
 	}
 
-	// Update product stock
+	// Update product stock atomically
 	for _, item := range items {
-		product, err := s.productRepo.GetByID(ctx, item.ProductID)
-		if err != nil {
+		if err := s.productRepo.DecrementStock(ctx, item.ProductID, item.Quantity); err != nil {
 			return nil, err
 		}
-		
-		newStock := product.Stock - item.Quantity
-		if newStock < 0 {
-			return nil, errors.New("insufficient stock for product")
-		}
-		
-		// Note: You'll need to add UpdateStock method to ProductRepository
-		// For now, we'll skip stock update to avoid compilation errors
 	}
 
 	// Clear cart
