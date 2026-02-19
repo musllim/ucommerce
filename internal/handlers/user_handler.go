@@ -3,7 +3,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -51,7 +50,6 @@ func (h *UserHandler) createUser(w http.ResponseWriter, r *http.Request) {
 
 	err := h.service.CreateUser(r.Context(), input)
 	if err != nil {
-		fmt.Println("Error creating user:", input)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -115,14 +113,14 @@ func (h *UserHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.service.Login(r.Context(), req.Email, req.Password)
+	token, err := h.service.Login(r.Context(), req.Email, req.Password)
 	if err != nil {
 		http.Error(w, "invalid email or password", http.StatusUnauthorized)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(map[string]string{"token": token})
 }
 
 type LoginRequest struct {

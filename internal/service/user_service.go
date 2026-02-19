@@ -4,6 +4,7 @@ package service
 import (
 	"context"
 	"errors"
+	"os"
 
 	"time"
 
@@ -13,7 +14,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var jwtSecret = []byte("your-secret-key") // Use a secure value in production!
+var jwtSecret []byte
+
+func init() {
+	if secret := os.Getenv("JWT_SECRET"); secret != "" {
+		jwtSecret = []byte(secret)
+	} else {
+		jwtSecret = []byte("your-secret-key") // fallback for development only
+	}
+}
 
 type UserService struct {
 	repo *repository.UserRepository

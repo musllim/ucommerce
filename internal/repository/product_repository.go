@@ -172,6 +172,23 @@ func (r *ProductRepository) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
+func (r *ProductRepository) DecrementStock(ctx context.Context, id int64, quantity int) error {
+	query := `UPDATE products SET stock = stock - ?, updated_at = ? WHERE id = ? AND stock >= ?`
+	now := time.Now()
+	result, err := r.db.ExecContext(ctx, query, quantity, now, id, quantity)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return errors.New("insufficient stock for product")
+	}
+	return nil
+}
+
 func (r *ProductRepository) Count(ctx context.Context) (*int, error) {
 	query := `SELECT COUNT(*) AS total FROM products`
 	
